@@ -1,339 +1,571 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
-<HTML>
- <HEAD>
-  <TITLE> GOOD NIGHT <3 </TITLE>
-  <META CHARSET="UTF-8">
-  <META NAME="Generator" CONTENT="EditPlus">
-  <META NAME="Author" CONTENT="">
-  <META NAME="Keywords" CONTENT="">
-  <META NAME="Description" CONTENT="">
- 
-   
-  <style>
-  html, body {
-  height: 100%;
-  padding: 0;
-  margin: 0;
-  background: #000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-    overflow: hidden;
- 
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Huế - Heart Animation</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
- 
-.box {
-  width: 100%;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
+
+html, body {
+    width: 100%;
+    height: 100%;
 }
- 
-canvas {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-}
-#pinkboard {
-  position: relative;
-  margin: auto;
-  height: 500px;
-  width: 100%;
-  animation: animate 1.3s infinite;
-}
- 
-#pinkboard:before, #pinkboard:after {
-  content: '';
-  position: absolute;
-  background: #FF5CA4;
-  width: 100px;
-  height: 160px;
-  border-top-left-radius: 50px;
-  border-top-right-radius: 50px;
-}
- 
-#pinkboard:before {
-  left: 100px;
-  transform: rotate(-45deg);
-  transform-origin: 0 100%;
-  box-shadow: 0 14px 28px rgba(0,0,0,0.25),
-              0 10px 10px rgba(0,0,0,0.22);
-}
- 
-#pinkboard:after {
-  left: 0;
-  transform: rotate(45deg);
-  transform-origin: 100% 100%;
-}
- 
-@keyframes animate {
-  0% {
-    transform: scale(1);
-  }
-  30% {
-    transform: scale(.8);
-  }
-  60% {
-    transform: scale(1.2);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-  </style>
- </HEAD>
- 
- <BODY>
-   <div class="box">
-      <canvas id="pinkboard"></canvas>
-   </div>
-  <script>
-  /*
- * Settings
- */
-var settings = {
-  particles: {
-    length:   2000, // maximum amount of particles
-    duration:   2, // particle duration in sec
-    velocity: 100, // particle velocity in pixels/sec
-    effect: -1.3, // play with this for a nice effect
-    size:      13, // particle size in pixels
-  },
-};
-/*
- * RequestAnimationFrame polyfill by Erik Möller
- */
-(function(){var b=0;var c=["ms","moz","webkit","o"];for(var a=0;a<c.length&&!window.requestAnimationFrame;++a){window.requestAnimationFrame=window[c[a]+"RequestAnimationFrame"];window.cancelAnimationFrame=window[c[a]+"CancelAnimationFrame"]||window[c[a]+"CancelRequestAnimationFrame"]}if(!window.requestAnimationFrame){window.requestAnimationFrame=function(h,e){var d=new Date().getTime();var f=Math.max(0,16-(d-b));var g=window.setTimeout(function(){h(d+f)},f);b=d+f;return g}}if(!window.cancelAnimationFrame){window.cancelAnimationFrame=function(d){clearTimeout(d)}}}());
-/*
- * Point class
- */
-var Point = (function() {
-  function Point(x, y) {
-    this.x = (typeof x !== 'undefined') ? x : 0;
-    this.y = (typeof y !== 'undefined') ? y : 0;
-  }
-  Point.prototype.clone = function() {
-    return new Point(this.x, this.y);
-  };
-  Point.prototype.length = function(length) {
-    if (typeof length == 'undefined')
-      return Math.sqrt(this.x * this.x + this.y * this.y);
-    this.normalize();
-    this.x *= length;
-    this.y *= length;
-    return this;
-  };
-  Point.prototype.normalize = function() {
-    var length = this.length();
-    this.x /= length;
-    this.y /= length;
-    return this;
-  };
-  return Point;
-})();
-/*
- * Particle class
- */
-var Particle = (function() {
-  function Particle() {
-    this.position = new Point();
-    this.velocity = new Point();
-    this.acceleration = new Point();
-    this.age = 0;
-  }
-  Particle.prototype.initialize = function(x, y, dx, dy) {
-    this.position.x = x;
-    this.position.y = y;
-    this.velocity.x = dx;
-    this.velocity.y = dy;
-    this.acceleration.x = dx * settings.particles.effect;
-    this.acceleration.y = dy * settings.particles.effect;
-    this.age = 0;
-  };
-  Particle.prototype.update = function(deltaTime) {
-    this.position.x += this.velocity.x * deltaTime;
-    this.position.y += this.velocity.y * deltaTime;
-    this.velocity.x += this.acceleration.x * deltaTime;
-    this.velocity.y += this.acceleration.y * deltaTime;
-    this.age += deltaTime;
-  };
-  Particle.prototype.draw = function(context, image) {
-    function ease(t) {
-      return (--t) * t * t + 1;
-    }
-    var size = image.width * ease(this.age / settings.particles.duration);
-    context.globalAlpha = 1 - this.age / settings.particles.duration;
-    context.drawImage(image, this.position.x - size / 2, this.position.y - size / 2, size, size);
-  };
-  return Particle;
-})();
-/*
- * ParticlePool class
- */
-var ParticlePool = (function() {
-  var particles,
-      firstActive = 0,
-      firstFree   = 0,
-      duration    = settings.particles.duration;
- 
-  function ParticlePool(length) {
-    // create and populate particle pool
-    particles = new Array(length);
-    for (var i = 0; i < particles.length; i++)
-      particles[i] = new Particle();
-  }
-  ParticlePool.prototype.add = function(x, y, dx, dy) {
-    particles[firstFree].initialize(x, y, dx, dy);
-   
-    // handle circular queue
-    firstFree++;
-    if (firstFree   == particles.length) firstFree   = 0;
-    if (firstActive == firstFree       ) firstActive++;
-    if (firstActive == particles.length) firstActive = 0;
-  };
-  ParticlePool.prototype.update = function(deltaTime) {
-    var i;
-   
-    // update active particles
-    if (firstActive < firstFree) {
-      for (i = firstActive; i < firstFree; i++)
-        particles[i].update(deltaTime);
-    }
-    if (firstFree < firstActive) {
-      for (i = firstActive; i < particles.length; i++)
-        particles[i].update(deltaTime);
-      for (i = 0; i < firstFree; i++)
-        particles[i].update(deltaTime);
-    }
-   
-    // remove inactive particles
-    while (particles[firstActive].age >= duration && firstActive != firstFree) {
-      firstActive++;
-      if (firstActive == particles.length) firstActive = 0;
-    }
-   
-   
-  };
-  ParticlePool.prototype.draw = function(context, image) {
-    // draw active particles
-    if (firstActive < firstFree) {
-      for (i = firstActive; i < firstFree; i++)
-        particles[i].draw(context, image);
-    }
-    if (firstFree < firstActive) {
-      for (i = firstActive; i < particles.length; i++)
-        particles[i].draw(context, image);
-      for (i = 0; i < firstFree; i++)
-        particles[i].draw(context, image);
-    }
-  };
-  return ParticlePool;
-})();
-/*
- * Putting it all together
- */
-(function(canvas) {
-  var context = canvas.getContext('2d'),
-      particles = new ParticlePool(settings.particles.length),
-      particleRate = settings.particles.length / settings.particles.duration, // particles/sec
-      time;
- 
-  // get point on heart with -PI <= t <= PI
-  function pointOnHeart(t) {
-    return new Point(
-      160 * Math.pow(Math.sin(t), 3),
-      130 * Math.cos(t) - 50 * Math.cos(2 * t) - 20 * Math.cos(3 * t) - 10 * Math.cos(4 * t) + 25
+
+body {
+    background: radial-gradient(
+        circle at 50% 45%,
+        #250b18 0%,
+        #10040a 55%,
+        #050205 100%
     );
-  }
- 
-  // creating the particle image using a dummy canvas
-  var image = (function() {
-    var canvas  = document.createElement('canvas'),
-        context = canvas.getContext('2d');
-    canvas.width  = settings.particles.size;
-    canvas.height = settings.particles.size;
-    // helper function to create the path
-    function to(t) {
-      var point = pointOnHeart(t);
-      point.x = settings.particles.size / 2 + point.x * settings.particles.size / 350;
-      point.y = settings.particles.size / 2 - point.y * settings.particles.size / 350;
-      return point;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-family: system-ui, sans-serif;
+}
+
+.stage {
+    position: relative;
+    width: min(92vw, 560px);
+    aspect-ratio: 1 / 1;
+}
+
+canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 16px rgba(255, 60, 120, .45));
+}
+
+.name {
+    position: absolute;
+    left: 50%;
+    top: 47%;
+
+    transform: translate(-50%, -50%);
+
+    font-family:
+        "Brush Script MT",
+        "Segoe Script",
+        "Lucida Handwriting",
+        cursive;
+
+    font-size: clamp(2.6rem, 11vw, 4.6rem);
+
+    color: #fff0f5;
+
+    text-shadow:
+        0 0 10px #ff4d79,
+        0 0 26px #ff2a63,
+        0 0 54px #c2185b;
+
+    letter-spacing: .04em;
+    white-space: nowrap;
+    pointer-events: none;
+
+    animation:
+        fadeIn 2.5s ease-out 1.8s both,
+        glow 2.8s ease-in-out 4.3s infinite;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -40%) scale(.85);
     }
-    // create the path
-    context.beginPath();
-    var t = -Math.PI;
-    var point = to(t);
-    context.moveTo(point.x, point.y);
-    while (t < Math.PI) {
-      t += 0.01; // baby steps!
-      point = to(t);
-      context.lineTo(point.x, point.y);
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
     }
-    context.closePath();
-    // create the fill
-    context.fillStyle = '#FF5CA4';
-    context.fill();
-    // create the image
-    var image = new Image();
-    image.src = canvas.toDataURL();
-    return image;
-  })();
- 
-  // render that thing!
-  function render() {
-    // next animation frame
-    requestAnimationFrame(render);
-   
-    // update time
-    var newTime   = new Date().getTime() / 1000,
-        deltaTime = newTime - (time || newTime);
-    time = newTime;
-   
-    // clear canvas
-    context.clearRect(0, 0, canvas.width, canvas.height);
-   
-    // create new particles
-    var amount = particleRate * deltaTime;
-    for (var i = 0; i < amount; i++) {
-      var pos = pointOnHeart(Math.PI - 2 * Math.PI * Math.random());
-      var dir = pos.clone().length(settings.particles.velocity);
-      particles.add(canvas.width / 2 + pos.x, canvas.height / 2 - pos.y, dir.x, -dir.y);
+}
+
+@keyframes glow {
+    0%, 100% {
+        text-shadow:
+            0 0 10px #ff4d79,
+            0 0 26px #ff2a63,
+            0 0 54px #c2185b;
     }
-   
-    // update and draw particles
-    particles.update(deltaTime);
-    particles.draw(context, image);
-  }
- 
-  // handle (re-)sizing of the canvas
-  function onResize() {
-    canvas.width  = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
-  }
-  window.onresize = onResize;
- 
-  // delay rendering bootstrap
-  setTimeout(function() {
-    onResize();
-    render();
-  }, 10);
-})(document.getElementById('pinkboard'));
-  </script>
-  <div class="center-text",
-  style="    background-color: rgb(0, 0, 0);
-  width: 100%;
-  color: rgb(255 255 255);
-  height: 100%;
-  font-size: 25px;
-  font-style: italic;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 50px;
-  text-shadow: 0 0 10px rgb(225 12 168), 0 0 10px rgb(225 12 168), 0 0 10px rgb(225 12 168);
-  text-align: center;">CHÚC NGỦ NGON!</div>
- </BODY>
-</HTML>
+
+    50% {
+        text-shadow:
+            0 0 18px #ff7aa0,
+            0 0 44px #ff2a63,
+            0 0 84px #e0103f;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="stage">
+    <canvas id="c"></canvas>
+    <div class="name">Huế</div>
+</div>
+
+<script>
+(() => {
+
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+
+    let W = 0;
+    let H = 0;
+    let unit = 0;
+    let cx = 0;
+    let cy = 0;
+    let dpr = 1;
+
+    const CENTER_Y = -2.5;
+    const N = 6500;
+
+    // =========================
+    // CONFIG
+    // =========================
+
+    const CONFIG = {
+        particleDuration: 6.0,  // Thời gian hội tụ
+        heartbeatScale: 0.045,  // Độ phóng to trái tim
+        heartbeatPeriod: 3.0,   // Chu kỳ nhịp tim
+
+        driftX: 0.35,            // Tốc độ trôi ngang
+        driftY: 0.30,            // Tốc độ trôi dọc
+
+        driftAmount: 0.055,      // Biên độ trôi
+
+        heartbeatForce: 0.055,  // Lực co giãn hạt
+        heartbeatLag: 0.16       // Độ trễ sóng
+    };
+
+    const COLORS = [
+        "#ff4f87",
+        "#ff6f9c",
+        "#ff8fb3",
+        "#e63571",
+        "#ffb3cb",
+        "#b8185a"
+    ];
+
+    const buckets = COLORS.map(() => []);
+
+    // =========================
+    // HEART SHAPE
+    // =========================
+
+    function heartPt(t) {
+        return {
+            x: 16 * Math.pow(Math.sin(t), 3),
+
+            y:
+                13 * Math.cos(t)
+                - 5 * Math.cos(2 * t)
+                - 2 * Math.cos(3 * t)
+                - Math.cos(4 * t)
+        };
+    }
+
+    // Tạo điểm đều trên viền trái tim
+
+    const lut = (() => {
+
+        const fine = [];
+
+        let total = 0;
+        let prev = heartPt(0);
+
+        fine.push({ p: prev, d: 0 });
+
+        for (
+            let t = 0.001;
+            t <= Math.PI * 2 + 0.001;
+            t += 0.001
+        ) {
+
+            const p = heartPt(t);
+
+            total += Math.hypot(
+                p.x - prev.x,
+                p.y - prev.y
+            );
+
+            fine.push({
+                p,
+                d: total
+            });
+
+            prev = p;
+        }
+
+        const M = 1600;
+        const out = [];
+
+        let j = 0;
+
+        for (let i = 0; i < M; i++) {
+
+            const target = i / M * total;
+
+            while (
+                j < fine.length - 1 &&
+                fine[j].d < target
+            ) {
+                j++;
+            }
+
+            out.push(fine[j].p);
+        }
+
+        return out;
+
+    })();
+
+    // =========================
+    // RANDOM
+    // =========================
+
+    const rnd = Math.random;
+
+    function gauss() {
+        return (
+            rnd() + rnd() + rnd() - 1.5
+        ) / 1.5;
+    }
+
+    // =========================
+    // CREATE PARTICLES
+    // =========================
+
+    function build() {
+
+        for (let i = 0; i < N; i++) {
+
+            const edge = rnd() < 0.42;
+
+            const p = lut[
+                (rnd() * lut.length) | 0
+            ];
+
+            let r;
+            let noise;
+
+            if (edge) {
+
+                r = 0.93 + rnd() * 0.10;
+                noise = 0.22;
+
+            } else {
+
+                r = 1 - Math.pow(rnd(), 1.9) * 0.9;
+                noise = 0.38;
+
+            }
+
+            const dx = p.x * r + gauss() * noise;
+
+            const dy =
+                CENTER_Y +
+                (p.y - CENTER_Y) * r +
+                gauss() * noise;
+
+            let bi;
+
+            if (edge) {
+
+                bi = [0, 1, 2, 4, 1, 2][
+                    (rnd() * 6) | 0
+                ];
+
+            } else {
+
+                bi = (rnd() * COLORS.length) | 0;
+
+            }
+
+            const ang = rnd() * Math.PI * 2;
+            const dist = 6 + rnd() * 10;
+
+            buckets[bi].push({
+
+                x: dx,
+                y: dy,
+                r,
+
+                s: 0.8 + rnd() * rnd() * 2.4,
+
+                phase: rnd() * Math.PI * 2,
+
+                delay: rnd() * 1.1,
+
+                sx: Math.cos(ang) * dist,
+                sy: Math.sin(ang) * dist,
+
+                jx: gauss(),
+                jy: gauss(),
+
+                speed: 0.7 + rnd() * 0.6,
+
+                twinkle: rnd() * Math.PI * 2
+
+            });
+
+        }
+
+    }
+
+    // =========================
+    // RESIZE
+    // =========================
+
+    function resize() {
+
+        dpr = Math.min(
+            window.devicePixelRatio || 1,
+            2
+        );
+
+        const rect = canvas.getBoundingClientRect();
+
+        W = rect.width;
+        H = rect.height;
+
+        canvas.width = Math.round(W * dpr);
+        canvas.height = Math.round(H * dpr);
+
+        unit = W / 38;
+
+        cx = W / 2;
+        cy = H / 2 + CENTER_Y * unit;
+
+    }
+
+    // =========================
+    // EASING
+    // =========================
+
+    function easeOutCubic(x) {
+        return 1 - Math.pow(1 - x, 3);
+    }
+
+    function smooth(x) {
+        return x * x * (3 - 2 * x);
+    }
+
+    function clamp(x) {
+        return Math.max(0, Math.min(1, x));
+    }
+
+    // =========================
+    // HEARTBEAT
+    // =========================
+
+    function pulse(sec, lag = 0) {
+
+        if (sec < lag) return 0;
+
+        const p = (
+            ((sec - lag) % CONFIG.heartbeatPeriod)
+            + CONFIG.heartbeatPeriod
+        ) % CONFIG.heartbeatPeriod /
+            CONFIG.heartbeatPeriod;
+
+        const beat = (m, w) =>
+            Math.exp(-Math.pow((p - m) / w, 2));
+
+        return Math.min(
+            1,
+            0.9 * beat(0.12, 0.085) +
+            0.48 * beat(0.34, 0.09)
+        );
+
+    }
+
+    // =========================
+    // ANIMATION
+    // =========================
+
+    const start = performance.now();
+
+    function frame(now) {
+
+        const sec = (now - start) / 1000;
+
+        ctx.setTransform(
+            dpr, 0,
+            0, dpr,
+            0, 0
+        );
+
+        ctx.clearRect(0, 0, W, H);
+
+        // Nhịp tim
+
+        const heartbeat = pulse(sec - 1.5, 0.05);
+
+        // Trái tim co giãn chậm và mềm mại
+
+        const scale =
+            1 + CONFIG.heartbeatScale * heartbeat;
+
+        ctx.save();
+
+        ctx.translate(W / 2, H / 2);
+        ctx.scale(scale, scale);
+        ctx.translate(-W / 2, -H / 2);
+
+        const sizeK = W / 520;
+
+        // =========================
+        // PARTICLES
+        // =========================
+
+        for (let bi = 0; bi < buckets.length; bi++) {
+
+            ctx.fillStyle = COLORS[bi];
+
+            const tw = 0.78 + 0.22 *
+                Math.sin(
+                    sec * (0.9 + bi * 0.27) + bi * 1.7
+                );
+
+            const list = buckets[bi];
+
+            for (let i = 0; i < list.length; i++) {
+
+                const h = list[i];
+
+                // Hạt xuất hiện và bay vào chậm hơn
+
+                const ap = clamp(
+                    (sec - h.delay) /
+                    CONFIG.particleDuration
+                );
+
+                if (ap <= 0) continue;
+
+                const a = easeOutCubic(ap);
+
+                // Sóng nhịp tim lan từ tâm ra ngoài
+
+                const e = smooth(
+                    pulse(
+                        sec - 1.5,
+                        (1 - h.r) * CONFIG.heartbeatLag
+                    )
+                );
+
+                // Giảm lực co giãn
+
+                const f =
+                    CONFIG.heartbeatForce * e - 0.008;
+
+                // Chuyển động trôi chậm
+
+                const dX =
+                    Math.sin(
+                        sec * CONFIG.driftX * h.speed +
+                        h.phase
+                    ) * CONFIG.driftAmount;
+
+                const dY =
+                    Math.cos(
+                        sec * CONFIG.driftY * h.speed +
+                        h.phase * 1.4
+                    ) * CONFIG.driftAmount;
+
+                // Tọa độ hạt
+
+                const gx =
+                    h.x +
+                    h.x * f +
+                    h.jx * 0.5 * e +
+                    dX;
+
+                const gy =
+                    h.y +
+                    (h.y - CENTER_Y) * f +
+                    h.jy * 0.5 * e +
+                    dY;
+
+                // Hạt bay từ vị trí ban đầu về trái tim
+
+                const px =
+                    cx +
+                    (gx + h.sx * (1 - a)) * unit;
+
+                const py =
+                    cy -
+                    (gy + h.sy * (1 - a)) * unit;
+
+                // Kích thước hạt
+
+                const s =
+                    h.s * sizeK *
+                    (0.6 + 0.4 * a) *
+                    (1 + 0.25 * e);
+
+                // Lấp lánh
+
+                const shimmer =
+                    0.78 +
+                    0.22 * Math.sin(
+                        sec * 2.0 * h.speed +
+                        h.twinkle
+                    );
+
+                ctx.globalAlpha = tw * shimmer;
+
+                // Vẽ hạt tròn
+
+                ctx.beginPath();
+
+                ctx.arc(
+                    px,
+                    py,
+                    Math.max(0.25, s),
+                    0,
+                    Math.PI * 2
+                );
+
+                ctx.fill();
+
+            }
+
+        }
+
+        ctx.globalAlpha = 1;
+
+        ctx.restore();
+
+        requestAnimationFrame(frame);
+
+    }
+
+    // =========================
+    // START
+    // =========================
+
+    window.addEventListener("resize", resize);
+
+    resize();
+
+    build();
+
+    requestAnimationFrame(frame);
+
+})();
+</script>
+
+</body>
+</html>
